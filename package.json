@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://Ghaith-Alkhatib.github.io/MEGAFinance.git",
+  "homepage": "http://Ghaith-Alkhatib.github.io/MEGAFinance.git",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
