@@ -1,15 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { fileURLToPath, URL } from 'node:url';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   
-  // إعدادات المسار الأساسي
+  // Base path settings
   base: '/',
   
-  // إعدادات البناء
+  // Build settings
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -28,7 +28,7 @@ export default defineConfig({
     }
   },
   
-  // إعدادات الخادم للتطوير
+  // Development server settings
   server: {
     port: 3000,
     strictPort: true,
@@ -36,27 +36,36 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://megaverse.runasp.net',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.log('Proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq) => {
+            console.log('Proxy request to:', proxyReq.path);
+          });
+        }
       }
     }
   },
   
-  // إعدادات المسارات
+  // Path aliases
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@components': fileURLToPath(new URL('./src/components', import.meta.url)),
-      '@assets': fileURLToPath(new URL('./src/assets', import.meta.url))
+      '@': path.resolve(__dirname, './src'),
+      '@components': path.resolve(__dirname, './src/components'),
+      '@assets': path.resolve(__dirname, './src/assets')
     }
   },
   
-  // إعدادات ما قبل المعالجة CSS
+  // CSS preprocessor settings
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "@/styles/variables.scss";`
+        additionalData: `@import "${path.resolve(__dirname, './src/styles/variables.scss')}";`
       }
     }
   }

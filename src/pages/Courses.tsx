@@ -21,6 +21,7 @@ interface Instructor {
 }
 
 const Courses: React.FC = () => {
+  const API_BASE = "https://megaverse.runasp.net";
   const [courses, setCourses] = useState<Course[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [filters, setFilters] = useState({
@@ -46,15 +47,14 @@ const Courses: React.FC = () => {
     isUpdate: false,
   });
 
-useEffect(() => {
+  useEffect(() => {
     fetchCourses();
     fetchInstructors();
   }, []);
-  
+
   useEffect(() => {
     fetchCourses();
   }, [filters]);
-  
 
   const fetchCourses = async () => {
     setLoading(true);
@@ -65,7 +65,10 @@ useEffect(() => {
     );
   
     try {
-      const response = await axios.post("http://megaverse.runasp.net/api/Course/GetCourses", payload);
+      const response = await axios.post<Course[]>(
+        `${API_BASE}/api/Course/GetCourses`, 
+        payload
+      );
       setCourses(response.data);
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -74,15 +77,16 @@ useEffect(() => {
       setLoading(false);
     }
   };
-  
-  
 
   const fetchInstructors = async () => {
     try {
-      const response = await axios.get("http://megaverse.runasp.net/api/Instructor/GetInstructors");
+      const response = await axios.get<Instructor[]>(
+        `${API_BASE}/api/Instructor/GetInstructors`
+      );
       setInstructors(response.data);
     } catch (error) {
       console.error("Error fetching instructors:", error);
+      setError("Failed to fetch instructors. Please try again.");
     }
   };
 
@@ -91,7 +95,10 @@ useEffect(() => {
     setError("");
 
     try {
-      await axios.post("http://megaverse.runasp.net/api/Course/AddOrUpdateCourse", formData);
+      await axios.post(
+        `${API_BASE}/api/Course/AddOrUpdateCourse`, 
+        formData
+      );
       fetchCourses();
       handleCloseModal();
     } catch (error) {
@@ -107,7 +114,9 @@ useEffect(() => {
     setError("");
 
     try {
-      await axios.delete(`http://megaverse.runasp.net/api/Course/DeleteCourse/${id}`);
+      await axios.delete(
+        `${API_BASE}/api/Course/DeleteCourse/${id}`
+      );
       fetchCourses();
     } catch (error) {
       console.error("Error deleting course:", error);
@@ -260,19 +269,46 @@ useEffect(() => {
         {showModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
-              <h2 className="text-xl font-bold">{formData.isUpdate ? "Update Course" : "Add Course"}</h2>
-              <input type="text" placeholder="Course Name" className="border p-2 w-full mb-2"
-                value={formData.courseName} onChange={(e) => setFormData({ ...formData, courseName: e.target.value })} />
-              <textarea placeholder="Course Description" className="border p-2 w-full mb-2"
-                value={formData.courseDescription} onChange={(e) => setFormData({ ...formData, courseDescription: e.target.value })} />
-            <input type="number" placeholder="Course Price" className="border p-2 w-full mb-2" value={formData.courseFee === 0 ? "" : formData.courseFee}
-             onChange={(e) => setFormData({ ...formData, courseFee: Number(e.target.value) || 0 })} />
-              <input type="date" className="border p-2 w-full mb-2"
-                value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} />
-              <input type="date" className="border p-2 w-full mb-2"
-                value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} />
-              <select className="border p-2 w-full mb-2"
-                value={formData.instructorID} onChange={(e) => setFormData({ ...formData, instructorID: Number(e.target.value) })}>
+              <h2 className="text-xl font-bold mb-4">
+                {formData.isUpdate ? "Update Course" : "Add Course"}
+              </h2>
+              <input
+                type="text"
+                placeholder="Course Name"
+                className="border p-2 w-full mb-2"
+                value={formData.courseName}
+                onChange={(e) => setFormData({ ...formData, courseName: e.target.value })}
+              />
+              <textarea
+                placeholder="Course Description"
+                className="border p-2 w-full mb-2"
+                value={formData.courseDescription}
+                onChange={(e) => setFormData({ ...formData, courseDescription: e.target.value })}
+              />
+              <input
+                type="number"
+                placeholder="Course Price"
+                className="border p-2 w-full mb-2"
+                value={formData.courseFee === 0 ? "" : formData.courseFee}
+                onChange={(e) => setFormData({ ...formData, courseFee: Number(e.target.value) || 0 })}
+              />
+              <input
+                type="date"
+                className="border p-2 w-full mb-2"
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              />
+              <input
+                type="date"
+                className="border p-2 w-full mb-2"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              />
+              <select
+                className="border p-2 w-full mb-4"
+                value={formData.instructorID}
+                onChange={(e) => setFormData({ ...formData, instructorID: Number(e.target.value) })}
+              >
                 <option value="">Select Instructor</option>
                 {instructors.map((inst) => (
                   <option key={inst.instructorID} value={inst.instructorID}>
@@ -280,11 +316,20 @@ useEffect(() => {
                   </option>
                 ))}
               </select>
+              {error && <p className="text-red-500 mb-2">{error}</p>}
               <div className="flex justify-end space-x-2">
-                <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleAddOrUpdateCourse}>
-                  {formData.isUpdate ? "Update" : "Add"}
+                <button
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  onClick={handleAddOrUpdateCourse}
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : formData.isUpdate ? "Update" : "Add"}
                 </button>
-                <button className="bg-gray-500 text-white px-4 py-2 rounded" onClick={handleCloseModal}>
+                <button
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                  onClick={handleCloseModal}
+                  disabled={loading}
+                >
                   Cancel
                 </button>
               </div>
