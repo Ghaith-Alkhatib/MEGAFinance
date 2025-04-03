@@ -12,6 +12,10 @@ interface Student {
   phoneNumber: string;
 }
 
+interface StudentResponse {
+  data: Student[];
+}
+
 const Students: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -36,17 +40,17 @@ const Students: React.FC = () => {
 
   useEffect(() => {
     fetchStudents(filters);
-  }, [filters]); // عند تغيير الفلاتر، سيتم تنفيذ البحث تلقائيًا
+  }, [filters]);
 
   const fetchStudents = async (filters: object) => {
     setLoading(true);
     setError("");
     try {
-      const response = await axios.post(
-        "http://megaverse.runasp.net/api/Student/GetStudentsByFilter",
+      const response = await axios.post<StudentResponse>(
+        "https://megaverse.runasp.net/api/Student/GetStudentsByFilter",
         filters
       );
-      setStudents(response.data);
+      setStudents(response.data.data);
     } catch (error) {
       setError("Failed to fetch students. Please try again.");
     } finally {
@@ -59,10 +63,10 @@ const Students: React.FC = () => {
     setError("");
     try {
       await axios.post(
-        "http://megaverse.runasp.net/api/Student/AddOrUpdateStudent",
+        "https://megaverse.runasp.net/api/Student/AddOrUpdateStudent",
         formData
       );
-      fetchStudents(filters); // Pass filters to keep the current filter state
+      fetchStudents(filters);
       setShowModal(false);
       setFormData({
         studentID: 0,
@@ -72,7 +76,7 @@ const Students: React.FC = () => {
         email: "",
         phoneNumber: "",
         isUpdate: false,
-      }); // إعادة تعيين formData
+      });
     } catch (error) {
       setError("Failed to save student. Please try again.");
     } finally {
@@ -85,9 +89,9 @@ const Students: React.FC = () => {
     setError("");
     try {
       await axios.delete(
-        `http://megaverse.runasp.net/api/Student/DeleteStudent/${id}`
+        `https://megaverse.runasp.net/api/Student/DeleteStudent/${id}`
       );
-      fetchStudents(filters); // Pass filters to keep the current filter state
+      fetchStudents(filters);
       if (formData.studentID === id) {
         setFormData({
           studentID: 0,
@@ -97,7 +101,7 @@ const Students: React.FC = () => {
           email: "",
           phoneNumber: "",
           isUpdate: false,
-        }); // إعادة تعيين formData إذا تم حذف الطالب الذي يتم تحريره
+        });
       }
     } catch (error) {
       setError("Failed to delete student. Please try again.");
@@ -126,7 +130,6 @@ const Students: React.FC = () => {
           {loading && <p className="text-blue-500">Loading students...</p>}
           {error && <p className="text-red-500">{error}</p>}
 
-          {/* Add filters section here */}
           <div className="flex space-x-4 mb-4">
             <input
               type="text"

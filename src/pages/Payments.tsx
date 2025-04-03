@@ -30,6 +30,23 @@ interface Payment {
   courseName: string;
 }
 
+interface PaymentFormData {
+  paymentID: number;
+  studentID: number;
+  amount: number;
+  currency: number;
+  paymentDate: string;
+  paymentMethod: number;
+  fileID: string | null;
+  courseID: number;
+  isUpdate: boolean;
+}
+
+interface FileDownloadResponse extends Blob {}
+interface FileUploadResponse {
+  uuid: string;
+}
+
 const Payments: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -42,14 +59,14 @@ const Payments: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PaymentFormData>({
     paymentID: 0,
     studentID: 0,
     amount: 0,
     currency: 1,
     paymentDate: new Date().toISOString().split("T")[0],
     paymentMethod: 1,
-    fileID: null as string | null,
+    fileID: null,
     courseID: 0,
     isUpdate: false,
   });
@@ -67,8 +84,8 @@ const Payments: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await axios.post(
-        "http://megaverse.runasp.net/api/Student/GetStudentsByFilter",
+      const response = await axios.post<Student[]>(
+        "https://megaverse.runasp.net/api/Student/GetStudentsByFilter",
         {}
       );
       setStudents(response.data);
@@ -79,8 +96,8 @@ const Payments: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
-      const response = await axios.post(
-        "http://megaverse.runasp.net/api/Course/GetCourses",
+      const response = await axios.post<Course[]>(
+        "https://megaverse.runasp.net/api/Course/GetCourses",
         {}
       );
       setCourses(response.data);
@@ -97,8 +114,8 @@ const Payments: React.FC = () => {
       const payload = Object.fromEntries(
         Object.entries(filters).filter(([_, value]) => value !== "")
       );
-      const response = await axios.post(
-        "http://megaverse.runasp.net/api/Payment/GetPaymentsByFilter",
+      const response = await axios.post<Payment[]>(
+        "https://megaverse.runasp.net/api/Payment/GetPaymentsByFilter",
         payload
       );
       setPayments(response.data);
@@ -119,8 +136,8 @@ const Payments: React.FC = () => {
       if (file) {
         const fileFormData = new FormData();
         fileFormData.append("file", file);
-        const fileResponse = await axios.post(
-          "http://megaverse.runasp.net/api/File/Upload",
+        const fileResponse = await axios.post<FileUploadResponse>(
+          "https://megaverse.runasp.net/api/File/Upload",
           fileFormData,
           {
             headers: {
@@ -132,7 +149,7 @@ const Payments: React.FC = () => {
       }
 
       await axios.post(
-        "http://megaverse.runasp.net/api/Payment/AddOrUpdatePayment",
+        "https://megaverse.runasp.net/api/Payment/AddOrUpdatePayment",
         { ...formData, fileID: fileId }
       );
       fetchPayments();
@@ -151,7 +168,7 @@ const Payments: React.FC = () => {
 
     try {
       await axios.delete(
-        `http://megaverse.runasp.net/api/Payment/DeletePayment/${id}`
+        `https://megaverse.runasp.net/api/Payment/DeletePayment/${id}`
       );
       fetchPayments();
     } catch (error) {
@@ -175,7 +192,7 @@ const Payments: React.FC = () => {
       courseID: 0,
       isUpdate: false,
     });
-    setFile(null); // إعادة تعيين الملف المرفق
+    setFile(null);
   };
 
   const handleEditPayment = (payment: Payment) => {
@@ -198,9 +215,8 @@ const Payments: React.FC = () => {
       isUpdate: true,
     });
 
-    // جلب الملف المرفق (إن وجد)
     if (payment.fileName) {
-      axios.get(`http://megaverse.runasp.net/api/File/Download/${payment.fileName}`, {
+      axios.get<FileDownloadResponse>(`https://megaverse.runasp.net/api/File/Download/${payment.fileName}`, {
         responseType: 'blob'
       }).then(response => {
         const file = new File([response.data], payment.fileName || "file", { type: response.data.type });
@@ -218,17 +234,16 @@ const Payments: React.FC = () => {
   const generateReceiptPDF = async (payment: Payment) => {
     const receiptContent = document.createElement("div");
     receiptContent.style.position = "absolute";
-    receiptContent.style.left = "-9999px"; // إخفاء العنصر عن الشاشة
-    receiptContent.style.width = "700px"; // عرض العنصر (بحجم A4 بالميليمتر)
-    receiptContent.style.height = "595px"; // ارتفاع العنصر (بحجم A4 بالميليمتر)
-    receiptContent.style.backgroundImage = `url(${imagePath})`; // تعيين الصورة كخلفية
-    receiptContent.style.backgroundSize = "contain"; // عرض الصورة بالكامل دون قص
-    receiptContent.style.backgroundRepeat = "no-repeat"; // منع تكرار الصورة
-    receiptContent.style.backgroundPosition = "center"; // توسيط الصورة
-    receiptContent.style.padding = "20px"; 
-    receiptContent.style.fontFamily = "Arial, sans-serif"; 
+    receiptContent.style.left = "-9999px";
+    receiptContent.style.width = "700px";
+    receiptContent.style.height = "595px";
+    receiptContent.style.backgroundImage = `url(${imagePath})`;
+    receiptContent.style.backgroundSize = "contain";
+    receiptContent.style.backgroundRepeat = "no-repeat";
+    receiptContent.style.backgroundPosition = "center";
+    receiptContent.style.padding = "20px";
+    receiptContent.style.fontFamily = "Arial, sans-serif";
 
-    // تحديد مواضع الحقول بدقة مع تعديل الأنماط
     receiptContent.innerHTML = `
       <div style="position: absolute; top: 137px; left: 87px; color: #000000; font-size: 17px; font-weight: bold;">
         <p>${new Date(payment.paymentDate).toLocaleDateString()}</p>
@@ -249,21 +264,25 @@ const Payments: React.FC = () => {
 
     document.body.appendChild(receiptContent);
 
-    const canvas = await html2canvas(receiptContent, {
-      scale: 1, // عدم تكبير الصورة
-      useCORS: true, // السماح بتحميل الصور من مصادر خارجية
-    });
+    try {
+      const canvas = await html2canvas(receiptContent, {
+        scale: 1,
+        useCORS: true,
+      });
 
-    const imgData = canvas.toDataURL("image/png");
-
-    const doc = new jsPDF("p", "mm", "a4"); // A4 حجم الصفحة
-    const imgWidth = 210; // عرض الصفحة A4 بالميليمتر
-    const imgHeight = ((canvas.height * imgWidth) / canvas.width); // تقليل الارتفاع بنسبة 20%  
-    // إضافة الصورة إلى PDF بحجمها الطبيعي
-    doc.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight); // إضافة الصورة إلى PDF
-    doc.save(`Receipt_${payment.paymentID}.pdf`); // حفظ الملف
-
-    document.body.removeChild(receiptContent);
+      const imgData = canvas.toDataURL("image/png");
+      const doc = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      doc.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      doc.save(`Receipt_${payment.paymentID}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      setError("Failed to generate receipt. Please try again.");
+    } finally {
+      document.body.removeChild(receiptContent);
+    }
   };
 
   const handlePrintReceipt = (payment: Payment) => {
@@ -358,7 +377,7 @@ const Payments: React.FC = () => {
                     {payment.fileName && (
                       <div className="flex space-x-2">
                         <a
-                          href={`http://megaverse.runasp.net/api/File/Download/${payment.fileName}`}
+                          href={`https://megaverse.runasp.net/api/File/Download/${payment.fileName}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:underline"
@@ -366,7 +385,7 @@ const Payments: React.FC = () => {
                           Download
                         </a>
                         <a
-                          href={`http://megaverse.runasp.net/api/File/View/${payment.fileName}`}
+                          href={`https://megaverse.runasp.net/api/File/View/${payment.fileName}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-green-500 hover:underline"
@@ -488,12 +507,14 @@ const Payments: React.FC = () => {
                 <button
                   className="bg-blue-500 text-white px-4 py-2 rounded"
                   onClick={handleAddOrUpdatePayment}
+                  disabled={loading}
                 >
-                  {formData.isUpdate ? "Update" : "Add"}
+                  {loading ? "Processing..." : formData.isUpdate ? "Update" : "Add"}
                 </button>
                 <button
                   className="bg-gray-500 text-white px-4 py-2 rounded"
                   onClick={handleCloseModal}
+                  disabled={loading}
                 >
                   Cancel
                 </button>

@@ -67,8 +67,8 @@ const Expenses: React.FC = () => {
       const payload = Object.fromEntries(
         Object.entries(filters).filter(([_, value]) => value !== "")
       );
-      const response = await axios.post(
-        "http://megaverse.runasp.net/api/Expense/GetExpenses",
+      const response = await axios.post<Expense[]>(
+        "https://megaverse.runasp.net/api/Expense/GetExpenses",
         payload
       );
       setExpenses(response.data);
@@ -82,8 +82,8 @@ const Expenses: React.FC = () => {
 
   const fetchInstructors = async () => {
     try {
-      const response = await axios.get(
-        "http://megaverse.runasp.net/api/Instructor/GetInstructors"
+      const response = await axios.get<Instructor[]>(
+        "https://megaverse.runasp.net/api/Instructor/GetInstructors"
       );
       setInstructors(response.data);
     } catch (error) {
@@ -108,7 +108,7 @@ const Expenses: React.FC = () => {
       };
 
       await axios.post(
-        "http://megaverse.runasp.net/api/Expense/AddOrUpdateExpense",
+        "https://megaverse.runasp.net/api/Expense/AddOrUpdateExpense",
         payload
       );
       fetchExpenses();
@@ -127,7 +127,7 @@ const Expenses: React.FC = () => {
 
     try {
       await axios.delete(
-        `http://megaverse.runasp.net/api/Expense/DeleteExpense/${id}`
+        `https://megaverse.runasp.net/api/Expense/DeleteExpense/${id}`
       );
       fetchExpenses();
     } catch (error) {

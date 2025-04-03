@@ -36,7 +36,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://megaverse.runasp.net',
+        target: 'https://megaverse.runasp.net',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),

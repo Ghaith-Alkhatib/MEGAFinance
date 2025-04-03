@@ -4,8 +4,7 @@ import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Download } from "lucide-react
 import Layout from "../components/Layout";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import logo from '../images/MEGALogolight.png'; // استيراد الصورة
-
+import logo from '../images/MEGALogolight.png';
 
 interface Revenue {
   revenueID: number;
@@ -25,6 +24,14 @@ interface Course {
   courseName: string;
 }
 
+interface RevenueResponse {
+  data: Revenue[];
+}
+
+interface CourseResponse {
+  data: Course[];
+}
+
 const Revenues: React.FC = () => {
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -41,12 +48,12 @@ const Revenues: React.FC = () => {
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     revenueID: 0,
-    revenueType: 1, // Default to Course
+    revenueType: 1,
     amount: 0,
     revenueDate: new Date().toISOString().split("T")[0],
     description: "",
     relatedEntityID: null as number | null,
-    currency: 1, // Default to USD
+    currency: 1,
     isUpdate: false,
   });
 
@@ -67,11 +74,11 @@ const Revenues: React.FC = () => {
       const payload = Object.fromEntries(
         Object.entries(filters).filter(([_, value]) => value !== "")
       );
-      const response = await axios.post(
-        "http://megaverse.runasp.net/api/Revenue/GetRevenues",
+      const response = await axios.post<RevenueResponse>(
+        "https://megaverse.runasp.net/api/Revenue/GetRevenues",
         payload
       );
-      setRevenues(response.data);
+      setRevenues(response.data.data);
     } catch (error) {
       console.error("Error fetching revenues:", error);
       setError("Failed to fetch revenues. Please try again.");
@@ -82,11 +89,11 @@ const Revenues: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
-      const response = await axios.post(
-        "http://megaverse.runasp.net/api/Course/GetCourses",
+      const response = await axios.post<CourseResponse>(
+        "https://megaverse.runasp.net/api/Course/GetCourses",
         {}
       );
-      setCourses(response.data);
+      setCourses(response.data.data);
     } catch (error) {
       console.error("Error fetching courses:", error);
     }
@@ -97,7 +104,7 @@ const Revenues: React.FC = () => {
     setError("");
   
     try {
-      console.log("FormData before creating payload:", formData); // Debugging line
+      console.log("FormData before creating payload:", formData);
   
       const payload = {
         revenueID: formData.revenueID,
@@ -105,15 +112,15 @@ const Revenues: React.FC = () => {
         revenueDate: formData.revenueDate,
         description: formData.description,
         relatedEntityID: formData.relatedEntityID,
-        revenueType: formData.revenueType, // تأكد من إرسال revenueType
-        currency: formData.currency, // تأكد من إرسال currency
+        revenueType: formData.revenueType,
+        currency: formData.currency,
         isUpdate: formData.isUpdate,
       };
   
-      console.log("Payload being sent:", payload); // Debugging line
+      console.log("Payload being sent:", payload);
   
       await axios.post(
-        "http://megaverse.runasp.net/api/Revenue/AddOrUpdateRevenue",
+        "https://megaverse.runasp.net/api/Revenue/AddOrUpdateRevenue",
         payload
       );
       fetchRevenues();
@@ -132,7 +139,7 @@ const Revenues: React.FC = () => {
 
     try {
       await axios.delete(
-        `http://megaverse.runasp.net/api/Revenue/DeleteRevenue/${id}`
+        `https://megaverse.runasp.net/api/Revenue/DeleteRevenue/${id}`
       );
       fetchRevenues();
     } catch (error) {
@@ -152,7 +159,7 @@ const Revenues: React.FC = () => {
       revenueDate: new Date().toISOString().split("T")[0],
       description: "",
       relatedEntityID: null,
-      currency: 2, // Reset to USD
+      currency: 2,
       isUpdate: false,
     });
   };
@@ -182,59 +189,52 @@ const Revenues: React.FC = () => {
     );
   };
 
-const generatePDF = () => {
-  const doc = new jsPDF();
+  const generatePDF = () => {
+    const doc = new jsPDF();
 
-  const imgWidth = 15; 
-  const imgHeight = 15; 
-  doc.addImage(logo, 'PNG', 15, 10, imgWidth, imgHeight);
+    const imgWidth = 15; 
+    const imgHeight = 15; 
+    doc.addImage(logo, 'PNG', 15, 10, imgWidth, imgHeight);
 
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("MEGAcerse Academy Revenues", 58, 20); // تعديل الموقع حسب الحاجة
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("MEGAcerse Academy Revenues", 58, 20);
 
-  const today = new Date().toLocaleDateString();
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const textWidth = doc.getTextWidth(today);
-  doc.text(today, pageWidth - textWidth - 10, 20);
+    const today = new Date().toLocaleDateString();
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const textWidth = doc.getTextWidth(today);
+    doc.text(today, pageWidth - textWidth - 10, 20);
 
-  // إعداد الجدول
-  const headers = [
-    "Type",
-    "Amount",
-    "Currency",
-    "Date",
-    "Description",
-    "Related Entity",
-  ];
-  const data = revenues.map((rev) => [
-    rev.revenueTypeName,
-    rev.amount,
-    rev.currencyName,
-    new Date(rev.revenueDate).toLocaleDateString(),
-    rev.description,
-    rev.relatedEntityName || "N/A",
-  ]);
+    const headers = [
+      "Type",
+      "Amount",
+      "Currency",
+      "Date",
+      "Description",
+      "Related Entity",
+    ];
+    const data = revenues.map((rev) => [
+      rev.revenueTypeName,
+      rev.amount,
+      rev.currencyName,
+      new Date(rev.revenueDate).toLocaleDateString(),
+      rev.description,
+      rev.relatedEntityName || "N/A",
+    ]);
 
-  // حساب مجموع العمود "Amount"
-  const totalAmount = revenues.reduce((sum, rev) => sum + rev.amount, 0);
+    const totalAmount = revenues.reduce((sum, rev) => sum + rev.amount, 0);
+    data.push(["Total Amount", totalAmount, "", "", "", ""]);
 
-  // إضافة صف المجموع إلى البيانات
-  data.push(["Total Amount", totalAmount, "", "", "", ""]);
+    autoTable(doc, {
+      startY: 30,
+      head: [headers],
+      body: data,
+    });
 
-  // إضافة الجدول إلى الـ PDF
-  autoTable(doc, {
-    startY: 30, // بدء الجدول بعد الصورة والنص
-    head: [headers],
-    body: data,
-  });
-
-  // حفظ الـ PDF
-  doc.save("revenues.pdf");
-};
-
+    doc.save("revenues.pdf");
+  };
   
   return (
     <Layout>
